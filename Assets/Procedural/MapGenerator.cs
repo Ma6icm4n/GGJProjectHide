@@ -15,6 +15,7 @@ public class MapGenerator : MonoBehaviour
     public GameObject[] objects;
     public GameObject[] assetWallCorner;
     public GameObject[] assetWall;
+    public GameObject[] assetCenter;
     private int tilesCount = 0;
 
     // Room container
@@ -232,7 +233,7 @@ public class MapGenerator : MonoBehaviour
                         {
                             float positionX = (float)coordX * scale + (subCoordX - 0.5f);
                             float positionZ = (float)coordY * scale + (subCoordY - 0.5f);
-                            Instantiate(assetWall[0], new Vector3(positionX, 0.5f, positionZ), Quaternion.identity);
+                            Instantiate(assetCenter[0], new Vector3(positionX, 0.0f, positionZ), Quaternion.identity);
                         }
                     }
                 }
@@ -273,7 +274,10 @@ public class MapGenerator : MonoBehaviour
                         {
                             float positionX = (float)coordX * scale + (subCoordX - 0.5f);
                             float positionZ = (float)coordY * scale + (subCoordY - 0.5f);
-                            Instantiate(assetWallCorner[0], new Vector3(positionX, 0.5f, positionZ), Quaternion.identity);
+                            int angle = 90;
+                            if (subCoordY == 1) { angle *= subCoordX; }
+                            if (subCoordY == 0) { angle *= (1 - subCoordX) + 2; }
+                            Instantiate(assetWallCorner[0], new Vector3(positionX, 0.0f, positionZ), Quaternion.AngleAxis(angle, Vector3.up));
                         }
 
                         // If the subtile is along a wall
@@ -283,25 +287,25 @@ public class MapGenerator : MonoBehaviour
                             {
                                 float positionX = (float)coordX * scale + (subCoordX - 0.5f);
                                 float positionZ = (float)coordY * scale + (subCoordY - 0.5f);
-                                Instantiate(assetWall[0], new Vector3(positionX, 0.5f, positionZ), Quaternion.identity);
+                                Instantiate(assetWall[0], new Vector3(positionX, 0.0f, positionZ), Quaternion.AngleAxis(0, Vector3.up));
                             }
                             if (subtileType == 2)
                             {
                                 float positionX = (float)coordX * scale + (subCoordX - 0.5f);
                                 float positionZ = (float)coordY * scale + (subCoordY - 0.5f);
-                                Instantiate(assetWall[0], new Vector3(positionX, 0.5f, positionZ), Quaternion.identity);
+                                Instantiate(assetWall[0], new Vector3(positionX, 0.0f, positionZ), Quaternion.AngleAxis(180, Vector3.up));
                             }
                             if (subtileType == 4)
                             {
                                 float positionX = (float)coordX * scale + (subCoordX - 0.5f);
                                 float positionZ = (float)coordY * scale + (subCoordY - 0.5f);
-                                Instantiate(assetWall[0], new Vector3(positionX, 0.5f, positionZ), Quaternion.identity);
+                                Instantiate(assetWall[0], new Vector3(positionX, 0.0f, positionZ), Quaternion.AngleAxis(-90, Vector3.up));
                             }
                             if (subtileType == 8)
                             {
                                 float positionX = (float)coordX * scale + (subCoordX - 0.5f);
                                 float positionZ = (float)coordY * scale + (subCoordY - 0.5f);
-                                Instantiate(assetWall[0], new Vector3(positionX, 0.5f, positionZ), Quaternion.identity);
+                                Instantiate(assetWall[0], new Vector3(positionX, 0.0f, positionZ), Quaternion.AngleAxis(90, Vector3.up));
                             }
                         }
                     }
