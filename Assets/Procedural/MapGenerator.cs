@@ -16,17 +16,21 @@ public class MapGenerator : MonoBehaviour
     public GameObject[] assetWallCorner;
     public GameObject[] assetWall;
     public GameObject[] assetCenter;
+    public GameObject[] assetFloor;
     private int tilesCount = 0;
 
     // Room container
     private int[,] rooms;
+    private List<(int X, int Y, int direction)> doors;
 
     // Start is called before the first frame update
     void Start()
     {
         Random.InitState(seed);
+
         initializeRooms();
         extendRooms();
+        placeDoors();
         placeWalls();
         placeAsset();
     }
@@ -122,6 +126,60 @@ public class MapGenerator : MonoBehaviour
         }
     }
 
+    private void placeDoors()
+    {
+        // Loop over all the rooms
+        for (int room = 0; room < roomQuantity; room++)
+        {
+            List<(int room, List<(int X, int Y, int direction)> tiles)> roomWalls = new List<(int room, List<(int X, int Y, int direction)> tiles)>();
+
+            // Loop over each tiles
+            for (int coordX = 0; coordX < levelSizeX; coordX++)
+            {
+                for (int coordY = 0; coordY < levelSizeY; coordY++)
+                {
+                    // If the tile is not the current room, we skip
+                    if (rooms[coordX, coordY] != room) { continue; }
+
+                    List<int> relativePoses = new List<int>();
+                    List<int> neighbourRoomIDs = getNeighbours(coordX, coordY, ref relativePoses);
+
+                    // Loop over each neighbours
+                    for (int neighbour = 0; neighbour < neighbourRoomIDs.Count; neighbour++)
+                    {
+                        // If the neighbour is in the same room as us, skip it
+                        if (neighbourRoomIDs[neighbour] == rooms[coordX, coordY]) { continue; }
+
+                        bool isNewNeighbour = true;
+
+                        // For each already appended
+                        for(int roomWall = 0; roomWall < roomWalls.Count; roomWall++)
+                        {
+                            // If the room as already been appended
+                            if(roomWalls[roomWall].room != neighbourRoomIDs[neighbour]) { continue; }
+                                
+                            roomWalls[roomWall].tiles.Add((coordX, coordY, relativePoses[neighbour]));
+                            isNewNeighbour = false;
+                            break;
+                        }
+
+                        if(isNewNeighbour)
+                        {
+                            roomWalls.Add((neighbourRoomIDs[neighbour], new List<(int X, int Y, int direction)> { (coordX, coordY, relativePoses[neighbour]) }));
+                        }
+                    }
+                }
+            }
+
+            roomWalls.ForEach(delegate ((int room, List<(int X, int Y, int direction)> tiles) roomWall)
+            {
+                int chosenTile = Random.Range(0, roomWall.tiles.Count - 1);
+                Instantiate(assetCenter[0], new Vector3(roomWall.tiles[chosenTile].X * scale, 0.5f, roomWall.tiles[chosenTile].Y * scale), Quaternion.identity);
+                doors.Add((roomWall.tiles[chosenTile].X, roomWall.tiles[chosenTile].Y, roomWall.tiles[chosenTile].direction));
+            });
+        }
+    }
+
     private void placeWalls()
     {
         // Loop over each tiles to check if any walls to place
@@ -137,6 +195,8 @@ public class MapGenerator : MonoBehaviour
                 // Loop over each neighbours
                 for (int i = 0; i < neighbourRoomIDs.Count; i++)
                 {
+                    // Check if the neighbour is a door
+
                     // If the neighbour has a difference ID
                     if (neighbourRoomIDs[i] != rooms[coordX, coordY])
                     {
@@ -310,6 +370,9 @@ public class MapGenerator : MonoBehaviour
                         }
                     }
                 }
+
+                // Place the floor
+                Instantiate(assetFloor[0], new Vector3(coordX * scale, 0, coordY * scale), Quaternion.identity);
             }
         }
     }
