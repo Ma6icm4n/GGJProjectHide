@@ -11,6 +11,7 @@ public class MapGenerator : MonoBehaviour
     public int levelSizeY = 10;
     public int maxIteration = 50;
     public int seed = 42;
+    public int tableThreshold = 50;
     public GameObject[] objects;
     public GameObject[] assetWallCorner;
     public GameObject[] assetWall;
@@ -161,17 +162,86 @@ public class MapGenerator : MonoBehaviour
         {
             for (int coordY = 0; coordY < levelSizeY; coordY++)
             {
-                if (true)
+                // Find all the neighbours of the subTile
+                List<int> relativePoses = new List<int>();
+                List<int> neighbourRoomIDs = getNeighbours(coordX, coordY, ref relativePoses);
+
+                List<int> edgeCheck = new List<int>(new int[] { 0, 2, 3, 1 });
+
+                // Check if we are in a coridor and if we are against a wall
+                bool isAgainstWall = false;
+                bool isCorridor = false;
+                int horizontalCount = 0;
+                int verticalCount = 0;
+                for (int neighbour = 0; neighbour < neighbourRoomIDs.Count; neighbour++)
+                {
+                    if(neighbourRoomIDs[neighbour] != rooms[coordX, coordY])
+                    {
+                        isAgainstWall = true;
+                        if (relativePoses[neighbour] == 0 || relativePoses[neighbour] == 2) { horizontalCount++; }
+                        if (relativePoses[neighbour] == 3 || relativePoses[neighbour] == 1) { verticalCount++; }
+                    }
+                    edgeCheck.Remove(relativePoses[neighbour]);
+                }
+
+                // For all the edges
+                edgeCheck.ForEach(delegate (int edgeDirection)
+                {
+                    isAgainstWall = true;
+                    if (edgeDirection == 0 || edgeDirection == 2) { horizontalCount++; }
+                    if (edgeDirection == 3 || edgeDirection == 1) { verticalCount++; }
+                });
+
+                if (horizontalCount == 2 || verticalCount == 2) { isCorridor = true; }
+
+                bool isAtCenter = true;
+                List<int> relativeCornerPoses = new List<int>();
+                List<int> neighbourCornerRoomIDs = getCornerNeighbours(coordX, coordY, ref relativePoses);
+
+                for (int cornerNeighbour = 0; cornerNeighbour < neighbourCornerRoomIDs.Count; cornerNeighbour++)
+                {
+                    if(neighbourCornerRoomIDs[cornerNeighbour] != rooms[coordX, coordY])
+                    {
+                        isAtCenter = false;
+                    }
+                }
+
+                edgeCheck = new List<int>(new int[] { 0, 2, 3, 1 });
+
+                if (!isCorridor && !isAgainstWall && isAtCenter)
                 {
                     // Loop over all the subTiles
                     for (int i = 0; i < 4; i++)
                     {
-                        // Find all the neighbours of the subTile
-                        List<int> relativePoses = new List<int>();
-                        List<int> neighbourRoomIDs = getNeighbours(coordX, coordY, ref relativePoses);
+                        // Get the subCoordinate
+                        int subCoordX = i % 2;
+                        int subCoordY = i / 2;
 
-                        List<int> edgeCheck = new List<int>(new int[] { 0, 2, 3, 1 });
+                        bool isFullTable = false;
 
+                        if (coordX % 2 == 0 && coordY % 2 == 1 && Random.Range(0, 1) == 0)
+                        {
+                            if (Random.Range(0, 100) < tableThreshold) { isFullTable = true; }
+                        }
+                        else if (coordX % 2 == 1 && coordY % 2 == 0)
+                        {
+                            if (Random.Range(0, 100) < tableThreshold) { isFullTable = true; }
+                        }
+
+                        if(isFullTable)
+                        {
+                            float positionX = (float)coordX * scale + (subCoordX - 0.5f);
+                            float positionZ = (float)coordY * scale + (subCoordY - 0.5f);
+                            Instantiate(assetWall[0], new Vector3(positionX, 0.5f, positionZ), Quaternion.identity);
+                        }
+                    }
+                }
+
+                if (!isCorridor && isAgainstWall)
+                {
+                    // Loop over all the subTiles
+                    for (int i = 0; i < 4; i++)
+                    {
                         // Get the subCoordinate
                         int subCoordX = i % 2;
                         int subCoordY = i / 2;
@@ -280,5 +350,46 @@ public class MapGenerator : MonoBehaviour
         }
 
         return neighbourRoomIDs;
+    }
+
+    private List<int> getCornerNeighbours(int coordX, int coordY, ref List<int> relativePoses)
+    {
+        // Initialize the corner neighbours ID
+        List<int> neighbourCornerRoomIDs = new List<int>();
+
+        if (coordX > 0 && coordY > 0)
+        {
+            if (rooms[coordX - 1, coordY - 1] >= 0)
+            {
+                neighbourCornerRoomIDs.Add(rooms[coordX - 1, coordY - 1]);
+                relativePoses.Add(0);
+            }
+        }
+        if (coordX > 0 && coordY < levelSizeY - 1)
+        {
+            if (rooms[coordX - 1, coordY + 1] >= 0)
+            {
+                neighbourCornerRoomIDs.Add(rooms[coordX - 1, coordY + 1]);
+                relativePoses.Add(1);
+            }
+        }
+        if (coordX < levelSizeX - 1 && coordY > 0)
+        {
+            if (rooms[coordX + 1, coordY - 1] >= 0)
+            {
+                neighbourCornerRoomIDs.Add(rooms[coordX + 1, coordY - 1]);
+                relativePoses.Add(2);
+            }
+        }
+        if (coordX < levelSizeX - 1 && coordY < levelSizeY - 1)
+        {
+            if (rooms[coordX + 1, coordY + 1] >= 0)
+            {
+                neighbourCornerRoomIDs.Add(rooms[coordX + 1, coordY + 1]);
+                relativePoses.Add(3);
+            }
+        }
+
+        return neighbourCornerRoomIDs;
     }
 }
