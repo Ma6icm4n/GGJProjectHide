@@ -23,6 +23,7 @@ namespace Mirror.Examples.NetworkRoom
 
         public override void OnStartLocalPlayer()
         {
+            Debug.Log("BOOOOOOOOOONNNNNNNNJJJJJJJJOUUUUUUURRRRRRRR");
             Camera.main.orthographic = false;
             Camera.main.transform.SetParent(transform);
             Camera.main.transform.localPosition = new Vector3(0f, 3f, -8f);
