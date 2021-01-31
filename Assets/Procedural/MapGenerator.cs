@@ -13,6 +13,7 @@ public class MapGenerator : MonoBehaviour
     public int seed = 42;
     public int tableThreshold = 50;
     public GameObject[] objects;
+    public GameObject[] doorPrefab;
     public GameObject[] assetWallCorner;
     public GameObject[] assetWall;
     public GameObject[] assetCenter;
@@ -128,6 +129,8 @@ public class MapGenerator : MonoBehaviour
 
     private void placeDoors()
     {
+        doors = new List<(int X, int Y, int direction)>();
+
         // Loop over all the rooms
         for (int room = 0; room < roomQuantity; room++)
         {
@@ -174,7 +177,6 @@ public class MapGenerator : MonoBehaviour
             roomWalls.ForEach(delegate ((int room, List<(int X, int Y, int direction)> tiles) roomWall)
             {
                 int chosenTile = Random.Range(0, roomWall.tiles.Count - 1);
-                Instantiate(assetCenter[0], new Vector3(roomWall.tiles[chosenTile].X * scale, 0.5f, roomWall.tiles[chosenTile].Y * scale), Quaternion.identity);
                 doors.Add((roomWall.tiles[chosenTile].X, roomWall.tiles[chosenTile].Y, roomWall.tiles[chosenTile].direction));
             });
         }
@@ -192,19 +194,46 @@ public class MapGenerator : MonoBehaviour
 
                 List<int> edgeCheck = new List<int>(new int[] { 0, 2, 3, 1 });
 
+                // Check if the neighbour is a door
+                bool isDoor = false;
+                doors.ForEach(delegate ((int X, int Y, int direction) door)
+                {
+                    if (coordX == door.X && coordY == door.Y) { isDoor = true; }
+                });
+
                 // Loop over each neighbours
                 for (int i = 0; i < neighbourRoomIDs.Count; i++)
                 {
-                    // Check if the neighbour is a door
+                    edgeCheck.Remove(relativePoses[i]);
 
                     // If the neighbour has a difference ID
                     if (neighbourRoomIDs[i] != rooms[coordX, coordY])
                     {
-                        // Place a wall between them
-                        Instantiate(objects[0], new Vector3(coordX * scale, 0, coordY * scale), Quaternion.AngleAxis(90 * relativePoses[i], Vector3.up));
-                    }
+                        int neighbourCoordX = coordX;
+                        int neighbourCoordY = coordY;
 
-                    edgeCheck.Remove(relativePoses[i]);
+                        if (relativePoses[i] == 0) { neighbourCoordX -= 1; }
+                        if (relativePoses[i] == 1) { neighbourCoordY += 1; }
+                        if (relativePoses[i] == 2) { neighbourCoordX += 1; }
+                        if (relativePoses[i] == 3) { neighbourCoordY -= 1; }
+
+                        doors.ForEach(delegate ((int X, int Y, int direction) door)
+                        {
+                            if (neighbourCoordX == door.X && neighbourCoordY == door.Y) { isDoor = true; }
+                        });
+
+
+                        if (!isDoor)
+                        {
+                            // Place a wall between them
+                            Instantiate(objects[0], new Vector3(coordX * scale, 0, coordY * scale), Quaternion.AngleAxis(90 * relativePoses[i], Vector3.up));
+                        }
+                        else
+                        {
+                            // Place a wall between them
+                            Instantiate(doorPrefab[0], new Vector3(coordX * scale, 0, coordY * scale), Quaternion.AngleAxis(90 * relativePoses[i], Vector3.up));
+                        }
+                    }
                 }
 
                 // Place a wall at every edge
@@ -267,6 +296,32 @@ public class MapGenerator : MonoBehaviour
                     }
                 }
 
+                bool isDoor = false;
+                doors.ForEach(delegate ((int X, int Y, int direction) door)
+                {
+                    if (coordX == door.X && coordY == door.Y) { isDoor = true; }
+                });
+
+                // Loop over each neighbours
+                for (int i = 0; i < neighbourRoomIDs.Count; i++)
+                {
+                    // If the neighbour has the same ID skip it
+                    if (neighbourRoomIDs[i] == rooms[coordX, coordY]) { continue; }
+
+                    int neighbourCoordX = coordX;
+                    int neighbourCoordY = coordY;
+
+                    if (relativePoses[i] == 0) { neighbourCoordX -= 1; }
+                    if (relativePoses[i] == 1) { neighbourCoordY += 1; }
+                    if (relativePoses[i] == 2) { neighbourCoordX += 1; }
+                    if (relativePoses[i] == 3) { neighbourCoordY -= 1; }
+
+                    doors.ForEach(delegate ((int X, int Y, int direction) door)
+                    {
+                        if (neighbourCoordX == door.X && neighbourCoordY == door.Y) { isDoor = true; }
+                    });
+                }
+
                 edgeCheck = new List<int>(new int[] { 0, 2, 3, 1 });
 
                 if (!isCorridor && !isAgainstWall && isAtCenter)
@@ -298,7 +353,7 @@ public class MapGenerator : MonoBehaviour
                     }
                 }
 
-                if (!isCorridor && isAgainstWall)
+                if (!isCorridor && isAgainstWall && !isDoor)
                 {
                     // Loop over all the subTiles
                     for (int i = 0; i < 4; i++)
