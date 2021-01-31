@@ -1,16 +1,17 @@
 ﻿using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using Mirror;
 
-public class animationStateController : MonoBehaviour
+[RequireComponent(typeof(NetworkTransform))]
+public class animationStateController : NetworkBehaviour
 {
-    Animator animator;
+    public Animator animator;
     int velocityHash;
     float velocity;
 
     public GameObject characterContainer;
     public GameObject character;
-    public Camera cameraToLookAt;
 
     public float acceleration = 2f;
     public float deceleration = 5f;
@@ -23,13 +24,34 @@ public class animationStateController : MonoBehaviour
         velocityHash = Animator.StringToHash("Velocity");
     }
 
+    public override void OnStartLocalPlayer()
+    {
+        Camera.main.orthographic = false;
+        Camera.main.transform.SetParent(transform);
+        Camera.main.transform.localPosition = new Vector3(0f, 3f, -8f);
+        Camera.main.transform.localEulerAngles = new Vector3(10f, 0f, 0f);
+    }
+
+    void OnDisable()
+    {
+        if (isLocalPlayer && Camera.main != null)
+        {
+            Camera.main.orthographic = true;
+            Camera.main.transform.SetParent(null);
+            Camera.main.transform.localPosition = new Vector3(0f, 70f, 0f);
+            Camera.main.transform.localEulerAngles = new Vector3(90f, 0f, 0f);
+        }
+    }
+
     // Update is called once per frame
     void Update()
     {
+        if (!hasAuthority) { return; }
+
         ProcessInputs();
 
         // The sprite is always facing the camera
-        characterContainer.transform.LookAt(cameraToLookAt.transform);
+        characterContainer.transform.LookAt(Camera.main.transform);
     }
 
     void ProcessInputs() {
@@ -71,16 +93,21 @@ public class animationStateController : MonoBehaviour
 
             // Move the player in that direction
             moveCharacter(direction.normalized);
-
+            animator.SetBool("isWalking", true);
         }
         else if (velocity > 0) { // Otherwise decrease the velocity
             velocity -= Time.deltaTime * deceleration;
+            animator.SetBool("isWalking", false);
         }
 
+        
+
+
         // Update the blending parameter
-        updateVelocityBlend();
     }
 
+
+    [ClientRpc]
     void updateVelocityBlend() {
         animator.SetFloat(velocityHash, velocity);
     }
